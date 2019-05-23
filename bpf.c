@@ -16,12 +16,50 @@ typedef u_short double_byte;
 
 typedef struct EthernetBlueprint {
 	int fileDesc;
-	double_byte destinationMacAddress;
-	double_byte sourceMacAddress;
+	double_byte destinationMacAddress[3];
+	double_byte sourceMacAddress[3];
 	double_byte etherType;
 	char* message;
 	u_int messageLength;
 } EthernetBlueprint;
+
+u_int maxBufferLength;
+
+int attachToInterface(char* interfaceName);
+void readFrame(int fileDesc);
+
+// int main() {
+// 	int fileDesc = attachToInterface("en0");
+// 	if (fileDesc == -1) {
+// 		return -1;
+// 	}
+
+// 	EthernetBlueprint eth;
+// 	eth.fileDesc = fileDesc;
+
+// 	eth.destinationMacAddress[0] = 0x3456;
+// 	eth.destinationMacAddress[1] = 0x3456;
+// 	eth.destinationMacAddress[2] = 0x3456;
+
+// 	eth.sourceMacAddress[0] = 0x9876;
+// 	eth.sourceMacAddress[1] = 0x9876;
+// 	eth.sourceMacAddress[2] = 0x9876;
+
+// 	eth.etherType = 0x4389;
+// 	eth.message = "Hello everyone";
+// 	eth.messageLength = 14;
+// 	int res = writeEthernetFrame(eth);
+// 	printf("Result: %i \n", res);
+// }
+
+int main () {
+	int fileDesc = attachToInterface("en0");
+	if (fileDesc == -1) {
+		return -1;
+	}
+
+	readFrame(fileDesc);
+}
 
 // Takes interface name provided and configures a BPF to attach to it
 // then returns the BPF fileDescriptor to read/write
@@ -58,7 +96,6 @@ int attachToInterface(char* interfaceName) {
 		return -1;
 	}
 
-	u_int maxBufferLength;
 	err = ioctl(fileDesc, BIOCGBLEN, &maxBufferLength);
 	if (err == -1) {
 		printf("Error reading buffer length. %s\n", strerror(errno));
@@ -80,6 +117,14 @@ int attachToInterface(char* interfaceName) {
 	err = ioctl(fileDesc, BIOCFLUSH);
 	if (err == -1) {
 		printf("Flush failed. %s\n", strerror(errno));
+		return -1;
+	}
+
+	printf("Turning immediate mode on...\n");
+	u_int turnOnImmediateMode = 1;
+	err = ioctl(fileDesc, BIOCIMMEDIATE, &turnOnImmediateMode);
+	if (err == -1) {
+		printf("Failed to turn on immediate. %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -106,13 +151,14 @@ int writeEthernetFrame(EthernetBlueprint frame) {
 	printf("Writing to BPF...");
 
 	u_int messageSize = sizeof(frame.message[0]) * frame.messageLength;
-	u_int headerSize = 12; // 12 bytes == length of source + dest header
+	u_int headerSize = 14; // 12 bytes == length of source header(6) + dest header(6) + etherType(2)
 	u_int bufferSize = headerSize + messageSize;
 	byte* buffer = malloc(bufferSize);
 
-	memcpy(buffer, frame.destinationMacAddress, 6);
-	memcpy(buffer + 6, frame.sourceMacAddress, 6);
-	memcpy(buffer + 12, frame.message, frame.messageLength);
+	memcpy(buffer, &frame.destinationMacAddress, 6);
+	memcpy(buffer + 6, &frame.sourceMacAddress, 6);
+	memcpy(buffer + 12, &frame.etherType, 2);
+	memcpy(buffer + 14, frame.message, frame.messageLength);
 
 	int res = write(frame.fileDesc, buffer, bufferSize);
 	if (res == -1) {
@@ -125,7 +171,29 @@ int writeEthernetFrame(EthernetBlueprint frame) {
 }
 
 void readFrame(int fileDesc) {
-	// TODO
+	byte* buffer = malloc(maxBufferLength);
+	if (buffer == NULL) {
+		printf("Unable to allocate memory for buffer \n");
+		return;
+	}
+
+	int res = read(fileDesc, buffer, maxBufferLength);
+	if (res == -1) {
+		perror("Unable to read from bpf");
+		return;
+	}
+
+	printf("res: %i \n", res);
+
+	struct bpf_hdr* bpfHeaders;
+	bpfHeaders = (struct bpf_hdr*) buffer;
+
+	byte *ethernetPacket = buffer + bpfHeaders->bh_hdrlen;
+
+	double_byte destinationMacAddress[3] = { ethernetPacket[1], ethernetPacket[2], ethernetPacket[2] };
+	double_byte sourceMacAddress[3] = { ethernetPacket[3], ethernetPacket[4], ethernetPacket[5] };
+
+	printf("\n");
 }
 
 
