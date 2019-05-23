@@ -54,7 +54,7 @@ void printMacAddr(double_byte macAddr[6]);
 // }
 
 int main () {
-	int fileDesc = attachToInterface("en0");
+	int fileDesc = attachToInterface("en1");
 	if (fileDesc == -1) {
 		return -1;
 	}
@@ -192,8 +192,8 @@ void readFrame(int fileDesc) {
 	byte *ethernetPacket = buffer + bpfHeaders->bh_hdrlen;
 
 	double_byte destinationMacAddress[6] = {
+		ethernetPacket[0],
 		ethernetPacket[1],
-		ethernetPacket[2],
 		ethernetPacket[2],
 		ethernetPacket[3],
 		ethernetPacket[4],
@@ -214,6 +214,12 @@ void readFrame(int fileDesc) {
 	printMacAddr(sourceMacAddress);
 
 	printf("Ether type: %02x%02x \n", ethernetPacket[12], ethernetPacket[13]);
+
+	int frameEnd = bpfHeaders->bh_caplen;
+	printf("Packet length: %i \n", bpfHeaders->bh_caplen);
+	for (int i = 14; i < frameEnd; i++) {
+		printf("%02x", ethernetPacket[i]);
+	}
 
 	printf("\n");
 }
