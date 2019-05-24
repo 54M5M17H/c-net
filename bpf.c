@@ -29,6 +29,9 @@ int attachToInterface(char* interfaceName);
 void readFrame(int fileDesc);
 void printMacAddr(double_byte macAddr[6]);
 
+/**
+ * Write example
+*/
 // int main() {
 // 	int fileDesc = attachToInterface("en0");
 // 	if (fileDesc == -1) {
@@ -53,14 +56,17 @@ void printMacAddr(double_byte macAddr[6]);
 // 	printf("Result: %i \n", res);
 // }
 
-int main () {
-	int fileDesc = attachToInterface("en1");
-	if (fileDesc == -1) {
-		return -1;
-	}
+/**
+ * Read example
+*/
+// int main () {
+// 	int fileDesc = attachToInterface("en1");
+// 	if (fileDesc == -1) {
+// 		return -1;
+// 	}
 
-	readFrame(fileDesc);
-}
+// 	readFrame(fileDesc);
+// }
 
 // Takes interface name provided and configures a BPF to attach to it
 // then returns the BPF fileDescriptor to read/write
