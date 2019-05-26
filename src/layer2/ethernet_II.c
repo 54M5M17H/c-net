@@ -1,66 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <net/bpf.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-typedef u_char byte;
-typedef u_short double_byte;
-
-typedef struct EthernetBlueprint {
-	int fileDesc;
-	double_byte destinationMacAddress[3];
-	double_byte sourceMacAddress[3];
-	double_byte etherType;
-	char* message;
-	u_int messageLength;
-} EthernetBlueprint;
+#include "../../include/ethernet_II.h"
 
 u_int maxBufferLength;
-
-int attachToInterface(char* interfaceName);
-void readFrame(int fileDesc);
-void printMacAddr(double_byte macAddr[6]);
-
-// int main() {
-// 	int fileDesc = attachToInterface("en0");
-// 	if (fileDesc == -1) {
-// 		return -1;
-// 	}
-
-// 	EthernetBlueprint eth;
-// 	eth.fileDesc = fileDesc;
-
-// 	eth.destinationMacAddress[0] = 0x3456;
-// 	eth.destinationMacAddress[1] = 0x3456;
-// 	eth.destinationMacAddress[2] = 0x3456;
-
-// 	eth.sourceMacAddress[0] = 0x9876;
-// 	eth.sourceMacAddress[1] = 0x9876;
-// 	eth.sourceMacAddress[2] = 0x9876;
-
-// 	eth.etherType = 0x4389;
-// 	eth.message = "Hello everyone";
-// 	eth.messageLength = 14;
-// 	int res = writeEthernetFrame(eth);
-// 	printf("Result: %i \n", res);
-// }
-
-int main () {
-	int fileDesc = attachToInterface("en1");
-	if (fileDesc == -1) {
-		return -1;
-	}
-
-	readFrame(fileDesc);
-}
 
 // Takes interface name provided and configures a BPF to attach to it
 // then returns the BPF fileDescriptor to read/write
